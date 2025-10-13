@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { Script, console } from "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 
 contract HelperConfig is Script {
     struct Config {
@@ -18,6 +18,7 @@ contract HelperConfig is Script {
     address public constant BASE_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address public constant BASE_WETH = 0x4200000000000000000000000000000000000006;
     address public constant BASE_DAI = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public constant BASE_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
 
     constructor() {
         if (block.chainid == 8453) {
@@ -26,6 +27,6 @@ contract HelperConfig is Script {
     }
 
     function setBaseConfig() public {
-        networkConfig = Config({ zRouter: BASE_ZROUTER, usdc: BASE_USDC, weth: BASE_WETH, dai: BASE_DAI });
+        networkConfig = Config({zRouter: BASE_ZROUTER, usdc: BASE_USDC, weth: BASE_WETH, dai: BASE_DAI});
     }
 }

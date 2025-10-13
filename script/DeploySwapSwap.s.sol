@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./DeployHelpers.s.sol";
-import "../src/SwapHandler.sol";
-import "./HelperConfig.s.sol";
+import {ScaffoldETHDeploy} from "./DeployHelpers.s.sol";
+import {SwapSwap} from "../src/SwapSwap.sol";
+import {HelperConfig} from "./HelperConfig.s.sol";
 /**
  * @notice Deploy script for YourContract contract
  * @dev Inherits ScaffoldETHDeploy which:
@@ -15,7 +15,7 @@ import "./HelperConfig.s.sol";
  * yarn deploy --file DeployYourContract.s.sol --network optimism # live network (requires keystore)
  */
 
-contract DeploySwapHandler is ScaffoldETHDeploy {
+contract DeploySwapSwap is ScaffoldETHDeploy {
     /**
      * @dev Deployer setup based on `ETH_KEYSTORE_ACCOUNT` in `.env`:
      *      - "scaffold-eth-default": Uses Anvil's account #9 (0xa0Ee7A142d267C1f36714E4a8F75612F20a79720), no password prompt
@@ -28,7 +28,7 @@ contract DeploySwapHandler is ScaffoldETHDeploy {
     function run() external ScaffoldEthDeployerRunner {
         HelperConfig helperConfig = new HelperConfig();
         (address zRouter, address usdc, address weth, address dai) = helperConfig.networkConfig();
-        address token = address(0);
-        new SwapHandler(zRouter, token, usdc, weth, dai, helperConfig.ADMIN());
+        address token = helperConfig.BASE_CBBTC();
+        new SwapSwap(zRouter, token, usdc, weth, dai, helperConfig.ADMIN());
     }
 }
