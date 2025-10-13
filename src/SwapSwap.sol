@@ -59,11 +59,13 @@ contract SwapSwap is AccessControl, ISwapSwap {
         (address user, bool stable, address tokenIn, uint256 swapAmount, uint256 amountLimit, uint256 deadline) =
             abi.decode(data, (address, bool, address, uint256, uint256, uint256));
 
+        address tokenOut = tokenIn == i_token ? i_USDC : i_token;
+
         (uint256 amountIn, uint256 amountOut) = s_zRouter.swapAero({
             to: user,
             stable: stable,
             tokenIn: tokenIn,
-            tokenOut: i_token,
+            tokenOut: tokenOut,
             swapAmount: swapAmount,
             amountLimit: amountLimit,
             deadline: deadline

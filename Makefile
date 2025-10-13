@@ -57,5 +57,8 @@ fundSubscription:
 gasCoverage:
 	forge test $(FORK_NETWORK_ARGS) --gas-report
 
-testExecuteSwap:
-	forge test --mt testExecuteSwap $(FORK_NETWORK_ARGS) -vvv
+testExecuteSwapFromUSDCtoToken:
+	forge test --mt testExecuteSwapFromUSDCtoToken $(FORK_NETWORK_ARGS) -vvvv
+
+testExecuteSwapFromTokentoUSDC:
+	forge test --mt testExecuteSwapFromTokentoUSDC $(FORK_NETWORK_ARGS) -vvv
