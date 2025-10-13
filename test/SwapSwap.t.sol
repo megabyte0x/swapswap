@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {console} from "forge-std/Script.sol";
 import {Test} from "forge-std/Test.sol";
-import {IERC20, SafeERC20, SwapSwap} from "../src/SwapSwap.sol";
+import {console} from "forge-std/Script.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IPyth, PythStructs} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import {HelperConfig} from "../script/HelperConfig.s.sol";
-import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import {IERC20, SafeERC20, SwapSwap} from "../src/SwapSwap.sol";
 
 contract SwapSwapTest is Test {
     using SafeERC20 for IERC20;
@@ -98,7 +100,7 @@ contract SwapSwapTest is Test {
         return tokenPrice18Decimals;
     }
 
-    function _getTokenAmount(address tokenIn, address tokenOut, uint256 swapAmount)
+    function _getTokenAmount(address tokenIn, address tokenOut, uint256 tokenInAmt)
         internal
         view
         returns (uint256 tokenAmt)
@@ -107,10 +109,14 @@ contract SwapSwapTest is Test {
         uint8 outDecimals = IERC20Metadata(tokenOut).decimals();
         uint256 tokenInPrice = _getPrice(tokenIn);
         uint256 tokenOutPrice = _getPrice(tokenOut);
-        // tokenPrice is in 18 decimals (from Pyth)
-        uint256 scale = 10 ** (outDecimals + 18 - inDecimals);
 
-        tokenAmt = (swapAmount * scale * tokenInPrice) / (tokenOutPrice * DECIMALS_18);
+        uint256 base = Math.mulDiv(tokenInAmt, tokenInPrice, tokenOutPrice);
+
+        if (outDecimals >= inDecimals) {
+            tokenAmt = tokenAmt = base * (10 ** (outDecimals - inDecimals));
+        } else {
+            tokenAmt = base / (10 ** (inDecimals - outDecimals));
+        }
     }
 
     function _calculateAmountLimit(uint256 tokenAmt, uint256 slippage) internal pure returns (uint256) {
@@ -119,26 +125,29 @@ contract SwapSwapTest is Test {
 
     function testExecuteSwapFromUSDCtoToken() public grantExecutorRole {
         bool stable = false;
-        address tokenIn = usdc;
-        address tokenOut = swapSwap.i_token();
-        uint256 swapAmount = 1000 * 1e6;
         uint256 deadline = block.timestamp + 30 seconds;
 
-        uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, swapAmount);
+        address tokenIn = usdc;
+        address tokenOut = swapSwap.i_token();
+
+        uint256 swapAmount = 1000;
+        uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
+        uint256 tokenInAmt = swapAmount * 10 ** inDecimals;
+
+        uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
 
         uint256 slippage = 100; // 1%
         uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
-
         console.log("amt limit: ", amountLimit);
 
-        bytes memory data = abi.encode(USER, stable, tokenIn, swapAmount, amountLimit, deadline);
+        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
 
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
-        IERC20(usdc).safeTransfer(address(swapSwap), swapAmount);
+        IERC20(tokenIn).safeTransfer(address(swapSwap), tokenInAmt);
 
         vm.prank(EXECUTOR);
         swapSwap.executeSwap(data);
