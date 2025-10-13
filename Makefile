@@ -54,5 +54,8 @@ addConsumer:
 fundSubscription:
 	@forge script script/Interactions.s.sol:FundSubscription $(NETWORK_ARGS)
 
+gasCoverage:
+	forge test $(FORK_NETWORK_ARGS) --gas-report
+
 testExecuteSwap:
-	forge test --mt testExecuteSwap $(FORK_NETWORK_ARGS) -vvvvv
+	forge test --mt testExecuteSwap $(FORK_NETWORK_ARGS) -vvv

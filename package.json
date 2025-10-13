@@ -1,0 +1,28 @@
+{
+  "name": "swapswap",
+  "version": "1.0.0",
+  "description": "An open-source infra which let anyone to swap their USDC/DAI/ETH to the *token*  or vice versa by just sending it to `[token].swapswap.eth`.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/megabyte0x/swapswap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/megabyte0x/swapswap/issues"
+  },
+  "homepage": "https://github.com/megabyte0x/swapswap#readme",
+  "dependencies": {
+    "@pythnetwork/pyth-sdk-solidity": "^4.2.0"
+  }
+}
