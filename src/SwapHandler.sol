@@ -3,9 +3,9 @@ pragma solidity 0.8.30;
 
 // Useful for debugging. Remove when deploying to a live network.
 import "forge-std/console.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IzRouter } from "./zRouter/IzRouter.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IzRouter} from "./zRouter/IzRouter.sol";
 
 contract SwapHandler is AccessControl {
     error SwapHandler__ZeroBalance();
@@ -105,7 +105,7 @@ contract SwapHandler is AccessControl {
             revert SwapHandler__ZeroBalance();
         }
 
-        (bool success,) = msg.sender.call{ value: address(this).balance }("");
+        (bool success,) = msg.sender.call{value: address(this).balance}("");
         if (!success) {
             revert SwapHandler__ETHTransferFailed();
         }
@@ -113,5 +113,5 @@ contract SwapHandler is AccessControl {
         emit SwapHandler__ETHRecovered();
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }

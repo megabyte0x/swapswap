@@ -16,7 +16,7 @@ contract SwapSwap is Test {
 
         (address zRouter, address usdc, address weth, address dai) = helperConfig.networkConfig();
 
-        swapHandler = new SwapHandler(zRouter, usdc, weth, dai, OWNER);
+        swapHandler = new SwapHandler(zRouter, address(0), usdc, weth, dai, OWNER);
     }
 
     function testGrantExecutorRole() public {

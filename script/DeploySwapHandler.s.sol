@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "./DeployHelpers.s.sol";
-import "../contracts/SwapHandler.sol";
+import "../src/SwapHandler.sol";
 import "./HelperConfig.s.sol";
 /**
  * @notice Deploy script for YourContract contract
@@ -28,6 +28,7 @@ contract DeploySwapHandler is ScaffoldETHDeploy {
     function run() external ScaffoldEthDeployerRunner {
         HelperConfig helperConfig = new HelperConfig();
         (address zRouter, address usdc, address weth, address dai) = helperConfig.networkConfig();
-        new SwapHandler(zRouter, usdc, weth, dai, helperConfig.ADMIN());
+        address token = address(0);
+        new SwapHandler(zRouter, token, usdc, weth, dai, helperConfig.ADMIN());
     }
 }
