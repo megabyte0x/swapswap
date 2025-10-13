@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/Script.sol";
@@ -25,7 +25,7 @@ contract SwapSwapTest is Test {
     address public EXECUTOR = makeAddr("EXECUTOR");
     address public USER = makeAddr("USER");
 
-    address public s_admin;
+    address public admin;
     address public zRouter;
     address public usdc;
     address public weth;
@@ -38,11 +38,11 @@ contract SwapSwapTest is Test {
         helperConfig = new HelperConfig();
 
         (zRouter, usdc, weth, dai) = helperConfig.networkConfig();
-        s_admin = helperConfig.ADMIN();
+        admin = helperConfig.ADMIN();
         token = helperConfig.BASE_CBBTC();
         token_decimals = IERC20Metadata(token).decimals();
 
-        vm.startPrank(s_admin);
+        vm.startPrank(admin);
         swapSwap = new SwapSwap({
             _token: token,
             _router: zRouter,
@@ -75,7 +75,7 @@ contract SwapSwapTest is Test {
     function testGrantExecutorRole() public {
         bytes32 role = keccak256("EXECUTOR");
 
-        vm.prank(s_admin);
+        vm.prank(admin);
         swapSwap.grantRole(role, EXECUTOR);
 
         assert(swapSwap.hasRole(role, EXECUTOR));
@@ -84,7 +84,7 @@ contract SwapSwapTest is Test {
     modifier grantExecutorRole() {
         bytes32 role = keccak256("EXECUTOR");
 
-        vm.prank(s_admin);
+        vm.prank(admin);
         swapSwap.grantRole(role, EXECUTOR);
         _;
     }

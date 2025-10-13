@@ -62,3 +62,6 @@ testExecuteSwapFromUSDCtoToken:
 
 testExecuteSwapFromTokentoUSDC:
 	forge test --mt testExecuteSwapFromTokentoUSDC $(FORK_NETWORK_ARGS) -vvv
+
+testSameDeployment:
+	forge test --mt testSameDeployment $(FORK_NETWORK_ARGS) -vvvv
