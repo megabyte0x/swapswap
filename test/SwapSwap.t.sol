@@ -21,6 +21,7 @@ contract SwapSwapTest is Test {
     uint256 public constant APPROVAL_AMT = 1_000;
     uint256 public constant USDC_APPROVAL_AMT = 1_000_000 * 1e6;
     uint256 public constant DECIMALS_18 = 1e18;
+    address constant ETH = address(0);
 
     address public EXECUTOR = makeAddr("EXECUTOR");
     address public USER = makeAddr("USER");
@@ -66,6 +67,7 @@ contract SwapSwapTest is Test {
     }
 
     function setDeals() public {
+        deal(USER, 100 ether);
         deal(usdc, USER, USDC_APPROVAL_AMT);
         deal(weth, USER, APPROVAL_AMT * DECIMALS_18);
         deal(dai, USER, APPROVAL_AMT * DECIMALS_18);
@@ -105,8 +107,8 @@ contract SwapSwapTest is Test {
         view
         returns (uint256 tokenAmt)
     {
-        uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
-        uint8 outDecimals = IERC20Metadata(tokenOut).decimals();
+        uint8 inDecimals = tokenIn == ETH ? IERC20Metadata(weth).decimals() : IERC20Metadata(tokenIn).decimals();
+        uint8 outDecimals = tokenOut == ETH ? IERC20Metadata(weth).decimals() : IERC20Metadata(tokenOut).decimals();
         uint256 tokenInPrice = _getPrice(tokenIn);
         uint256 tokenOutPrice = _getPrice(tokenOut);
 
@@ -130,9 +132,9 @@ contract SwapSwapTest is Test {
         address tokenIn = usdc;
         address tokenOut = swapSwap.i_token();
 
-        uint256 swapAmount = 1000;
+        uint256 swapAmountIn1e18 = 12545e16; // 125.45e18
         uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
-        uint256 tokenInAmt = swapAmount * 10 ** inDecimals;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
 
         uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
@@ -161,29 +163,75 @@ contract SwapSwapTest is Test {
         assertGt(change, amountLimit);
     }
 
+    // TODO: Change the pool for USDC and BTC to CL one
     function testExecuteSwapFromTokentoUSDC() public grantExecutorRole {
         bool stable = false;
-        address tokenIn = swapSwap.i_token();
+        address tokenIn = token;
         address tokenOut = usdc;
         uint256 deadline = block.timestamp + 30 seconds;
 
-        // cbBTC have 8 decimal
-        uint256 swapAmount = 1e5; // 0.001 cbBTC
+        uint256 swapAmountIn1e18 = 6e17; // 0.6e18
+        uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
 
-        uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, swapAmount);
+        // cbBTC have 8 decimal
+        // 0.6 * 1e18 * 1e8 / 1e18 = 6e7 === 0.6 cbBTC
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+
+        uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
+        console.log("tokenAmt :", tokenAmt);
+
+        uint256 slippage = 300; // 1%
+        uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
+        console.log("amt limit: ", amountLimit);
+
+        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
+
+        uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
+        console.log("balance before: ", balanceBefore);
+
+        vm.prank(USER);
+        IERC20(tokenIn).safeTransfer(address(swapSwap), tokenInAmt);
+
+        vm.prank(EXECUTOR);
+        swapSwap.executeSwap(data);
+
+        uint256 balanceAfter = IERC20(tokenOut).balanceOf(USER);
+        console.log("balance after: ", balanceAfter);
+
+        uint256 change = (balanceAfter - balanceBefore);
+        console.log("Change in balance: ", change);
+
+        assertGt(change, amountLimit);
+    }
+
+    function testExecuteSwapFromETHtoToken() public grantExecutorRole {
+        bool stable = false;
+        uint256 deadline = block.timestamp + 30 seconds;
+
+        address tokenIn = ETH;
+        address tokenOut = swapSwap.i_token();
+
+        uint256 swapAmountIn1e18 = 5e16; // 0.05e18
+        uint8 inDecimals = tokenIn == ETH ? 18 : IERC20Metadata(tokenIn).decimals();
+
+        // 0.05 * 1e18 * 1e18 / 1e18 = 5e16 === 0.05 ether
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+
+        uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
 
         uint256 slippage = 100; // 1%
         uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
         console.log("amt limit: ", amountLimit);
 
-        bytes memory data = abi.encode(USER, stable, tokenIn, swapAmount, amountLimit, deadline);
+        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
 
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
-        IERC20(token).safeTransfer(address(swapSwap), swapAmount);
+        (bool success,) = address(swapSwap).call{value: tokenInAmt}("");
+        require(success, "ETH_TRANSFER_FAILED");
 
         vm.prank(EXECUTOR);
         swapSwap.executeSwap(data);

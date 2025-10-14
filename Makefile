@@ -42,17 +42,14 @@ ifeq ($(findstring --network sepolia,$(ARGS)),--network sepolia)
 	NETWORK_ARGS := --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
 endif
 
-deploy:
-	@forge script script/DeployRaffle.s.sol:DeployRaffle $(NETWORK_ARGS)
-
 createSubscription:
 	@forge script script/Interactions.s.sol:CreateSubscription $(NETWORK_ARGS)
 
 addConsumer:
 	@forge script script/Interactions.s.sol:AddConsumer $(NETWORK_ARGS)
 
-fundSubscription:
-	@forge script script/Interactions.s.sol:FundSubscription $(NETWORK_ARGS)
+deployFactory:
+	forge script script/DeploySwapSwapFactory.s.sol:DeploySwapSwapFactory --rpc-url base_mainnet --etherscan-api-key etherscan_api_key --verify --account dev --broadcast
 
 gasCoverage:
 	forge test $(FORK_NETWORK_ARGS) --gas-report
@@ -62,6 +59,9 @@ testExecuteSwapFromUSDCtoToken:
 
 testExecuteSwapFromTokentoUSDC:
 	forge test --mt testExecuteSwapFromTokentoUSDC $(FORK_NETWORK_ARGS) -vvv
+
+testExecuteSwapFromETHtoToken:
+	forge test --mt testExecuteSwapFromETHtoToken $(FORK_NETWORK_ARGS) -vvv
 
 testSameDeployment:
 	forge test --mt testSameDeployment $(FORK_NETWORK_ARGS) -vvvv

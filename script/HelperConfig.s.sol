@@ -13,7 +13,8 @@ contract HelperConfig is Script {
 
     Config public networkConfig;
 
-    address public constant ADMIN = address(1);
+    address public constant ETH = address(0);
+    address public constant ADMIN = 0xD1AD5A61768d745aCE465e0cfD4acd039cA95025; // swapswap_admin
     address public constant BASE_ZROUTER = 0x0000000000404FECAf36E6184245475eE1254835;
     address public constant BASE_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address public constant BASE_WETH = 0x4200000000000000000000000000000000000006;
@@ -39,6 +40,9 @@ contract HelperConfig is Script {
             priceFeed = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
         } else if (asset == BASE_CBBTC) {
             priceFeed = 0x2817d7bfe5c64b8ea956e9a26f573ef64e72e4d7891f2d6af9bcc93f7aff9a97;
+        } else if (asset == ETH) {
+            // Using WETH price feed because swapAero uses WETH for the tokenIn/tokenOut if its ETH (address(0))
+            priceFeed = 0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6;
         } else {
             priceFeed = 0;
         }
