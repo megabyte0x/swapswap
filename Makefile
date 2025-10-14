@@ -25,7 +25,7 @@ update:; forge update
 
 build:; forge build
 
-FORK_NETWORK_ARGS := --fork-url base_mainnet --fork-block-number $(BLOCK_NUMBER) --etherscan-api-key etherscan_api_key
+FORK_NETWORK_ARGS := --fork-url base_mainnet --fork-block-number $(BLOCK_NUMBER) --etherscan-api-key etherscan_api_key 
 
 test :; forge test $(FORK_NETWORK_ARGS)
 
@@ -51,14 +51,17 @@ addConsumer:
 deployFactory:
 	forge script script/DeploySwapSwapFactory.s.sol:DeploySwapSwapFactory --rpc-url base_mainnet --etherscan-api-key etherscan_api_key --verify --account dev --broadcast
 
-gasCoverage:
+gasReport:
 	forge test $(FORK_NETWORK_ARGS) --gas-report
+
+coverage:
+	forge coverage $(FORK_NETWORK_ARGS)
 
 testExecuteSwapFromUSDCtoToken:
 	forge test --mt testExecuteSwapFromUSDCtoToken $(FORK_NETWORK_ARGS) -vvvv
 
 testExecuteSwapFromTokentoUSDC:
-	forge test --mt testExecuteSwapFromTokentoUSDC $(FORK_NETWORK_ARGS) -vvv
+	forge test --mt testExecuteSwapFromTokentoUSDC $(FORK_NETWORK_ARGS) -vvvvv
 
 testExecuteSwapFromETHtoToken:
 	forge test --mt testExecuteSwapFromETHtoToken $(FORK_NETWORK_ARGS) -vvv

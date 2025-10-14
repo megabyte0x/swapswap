@@ -3,7 +3,6 @@ src = "src"
 out = "out"
 libs = ["lib"]
 fs_permissions = [{ access = "read-write", path = "./"}]
-via-ir=true
 
 always_use_create_2_factory = true
 etherscan_api_key="${ETHERSCAN_API_KEY}"

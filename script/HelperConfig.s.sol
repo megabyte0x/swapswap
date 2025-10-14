@@ -12,6 +12,11 @@ contract HelperConfig is Script {
     }
 
     Config public networkConfig;
+    address constant AERO_FACTORY = 0x420DD381b31aEf6683db6B902084cB0FFECe40Da;
+    address constant AERO_IMPLEMENTATION = 0xA4e46b4f701c62e14DF11B48dCe76A7d793CD6d7;
+
+    address constant AERO_CL_FACTORY = 0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A;
+    address constant AERO_CL_IMPLEMENTATION = 0xeC8E5342B19977B4eF8892e02D8DAEcfa1315831;
 
     address public constant ETH = address(0);
     address public constant ADMIN = 0xD1AD5A61768d745aCE465e0cfD4acd039cA95025; // swapswap_admin
@@ -20,6 +25,7 @@ contract HelperConfig is Script {
     address public constant BASE_WETH = 0x4200000000000000000000000000000000000006;
     address public constant BASE_DAI = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address public constant BASE_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
+    address public constant BASE_NOICE = 0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69;
 
     constructor() {
         if (block.chainid == 8453) {
@@ -45,6 +51,63 @@ contract HelperConfig is Script {
             priceFeed = 0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6;
         } else {
             priceFeed = 0;
+        }
+    }
+
+    function checkIfCLPoolExists(address tokenA, address tokenB, int24 tickSpacing) public view returns (bool) {
+        if (tokenA == address(0)) tokenA = BASE_WETH;
+        if (tokenB == address(0)) tokenB = BASE_WETH;
+
+        (address pool,) = _aeroCLPoolFor(tokenA, tokenB, tickSpacing);
+
+        return pool.code.length != 0;
+    }
+
+    function _sortTokens(address tokenA, address tokenB)
+        internal
+        pure
+        returns (address token0, address token1, bool zeroForOne)
+    {
+        (token0, token1) = (zeroForOne = tokenA < tokenB) ? (tokenA, tokenB) : (tokenB, tokenA);
+    }
+
+    function _aeroPoolFor(address tokenA, address tokenB, bool stable)
+        internal
+        pure
+        returns (address aeroPool, bool zeroForOne)
+    {
+        (address token0, address token1, bool zF1) = _sortTokens(tokenA, tokenB);
+        zeroForOne = zF1;
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1, stable));
+        assembly ("memory-safe") {
+            let ptr := mload(0x40)
+            mstore(add(ptr, 0x38), AERO_FACTORY)
+            mstore(add(ptr, 0x24), 0x5af43d82803e903d91602b57fd5bf3ff)
+            mstore(add(ptr, 0x14), AERO_IMPLEMENTATION)
+            mstore(ptr, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73)
+            mstore(add(ptr, 0x58), salt)
+            mstore(add(ptr, 0x78), keccak256(add(ptr, 0x0c), 0x37))
+            aeroPool := keccak256(add(ptr, 0x43), 0x55)
+        }
+    }
+
+    function _aeroCLPoolFor(address tokenA, address tokenB, int24 tickSpacing)
+        internal
+        pure
+        returns (address aeroCLPool, bool zeroForOne)
+    {
+        (address token0, address token1, bool zF1) = _sortTokens(tokenA, tokenB);
+        zeroForOne = zF1;
+        bytes32 salt = keccak256(abi.encode(token0, token1, tickSpacing));
+        assembly ("memory-safe") {
+            let ptr := mload(0x40)
+            mstore(ptr, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+            mstore(add(ptr, 0x14), shl(0x60, AERO_CL_IMPLEMENTATION))
+            mstore(add(ptr, 0x28), 0x5af43d82803e903d91602b57fd5bf3ff00000000000000000000000000000000)
+            mstore(add(ptr, 0x38), shl(0x60, AERO_CL_FACTORY))
+            mstore(add(ptr, 0x4c), salt)
+            mstore(add(ptr, 0x6c), keccak256(ptr, 0x37))
+            aeroCLPool := keccak256(add(ptr, 0x37), 0x55)
         }
     }
 }

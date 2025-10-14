@@ -17,7 +17,6 @@ contract SwapSwapTest is Test {
     HelperConfig public helperConfig;
     IPyth public pyth = IPyth(0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a);
 
-    bytes32 btcUsdPriceFeed = 0x2817d7bfe5c64b8ea956e9a26f573ef64e72e4d7891f2d6af9bcc93f7aff9a97;
     uint256 public constant APPROVAL_AMT = 1_000;
     uint256 public constant USDC_APPROVAL_AMT = 1_000_000 * 1e6;
     uint256 public constant DECIMALS_18 = 1e18;
@@ -91,6 +90,23 @@ contract SwapSwapTest is Test {
         _;
     }
 
+    function callSwap(address tokenIn, address tokenOut, uint256 swapAmount, uint256 amountLimit, uint256 deadline)
+        internal
+    {
+        int24 tickSpacing = 100;
+        bool exactOut = false;
+        bool stable = false;
+
+        if (helperConfig.checkIfCLPoolExists(tokenIn, tokenOut, tickSpacing)) {
+            bytes memory data =
+                abi.encode(USER, exactOut, tickSpacing, tokenIn, tokenOut, swapAmount, amountLimit, deadline);
+            swapSwap.executeCLSwap(data);
+        } else {
+            bytes memory data = abi.encode(USER, stable, tokenIn, tokenOut, swapAmount, amountLimit, deadline);
+            swapSwap.executeSwap(data);
+        }
+    }
+
     function _getPrice(address asset) internal view returns (uint256) {
         bytes32 priceFeed = helperConfig.getPriceFeed(asset);
         require(priceFeed != 0, "PRICE_FEED_NOT_FOUND");
@@ -126,7 +142,6 @@ contract SwapSwapTest is Test {
     }
 
     function testExecuteSwapFromUSDCtoToken() public grantExecutorRole {
-        bool stable = false;
         uint256 deadline = block.timestamp + 30 seconds;
 
         address tokenIn = usdc;
@@ -143,16 +158,15 @@ contract SwapSwapTest is Test {
         uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
         console.log("amt limit: ", amountLimit);
 
-        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
-
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
         IERC20(tokenIn).safeTransfer(address(swapSwap), tokenInAmt);
 
-        vm.prank(EXECUTOR);
-        swapSwap.executeSwap(data);
+        vm.startPrank(EXECUTOR);
+        callSwap(tokenIn, tokenOut, tokenInAmt, amountLimit, deadline);
+        vm.stopPrank();
 
         uint256 balanceAfter = IERC20(tokenOut).balanceOf(USER);
         console.log("balance after: ", balanceAfter);
@@ -163,9 +177,7 @@ contract SwapSwapTest is Test {
         assertGt(change, amountLimit);
     }
 
-    // TODO: Change the pool for USDC and BTC to CL one
     function testExecuteSwapFromTokentoUSDC() public grantExecutorRole {
-        bool stable = false;
         address tokenIn = token;
         address tokenOut = usdc;
         uint256 deadline = block.timestamp + 30 seconds;
@@ -184,16 +196,15 @@ contract SwapSwapTest is Test {
         uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
         console.log("amt limit: ", amountLimit);
 
-        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
-
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
         IERC20(tokenIn).safeTransfer(address(swapSwap), tokenInAmt);
 
-        vm.prank(EXECUTOR);
-        swapSwap.executeSwap(data);
+        vm.startPrank(EXECUTOR);
+        callSwap(tokenIn, tokenOut, tokenInAmt, amountLimit, deadline);
+        vm.stopPrank();
 
         uint256 balanceAfter = IERC20(tokenOut).balanceOf(USER);
         console.log("balance after: ", balanceAfter);
@@ -205,7 +216,6 @@ contract SwapSwapTest is Test {
     }
 
     function testExecuteSwapFromETHtoToken() public grantExecutorRole {
-        bool stable = false;
         uint256 deadline = block.timestamp + 30 seconds;
 
         address tokenIn = ETH;
@@ -224,8 +234,6 @@ contract SwapSwapTest is Test {
         uint256 amountLimit = _calculateAmountLimit(tokenAmt, slippage);
         console.log("amt limit: ", amountLimit);
 
-        bytes memory data = abi.encode(USER, stable, tokenIn, tokenInAmt, amountLimit, deadline);
-
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
@@ -233,8 +241,9 @@ contract SwapSwapTest is Test {
         (bool success,) = address(swapSwap).call{value: tokenInAmt}("");
         require(success, "ETH_TRANSFER_FAILED");
 
-        vm.prank(EXECUTOR);
-        swapSwap.executeSwap(data);
+        vm.startPrank(EXECUTOR);
+        callSwap(tokenIn, tokenOut, tokenInAmt, amountLimit, deadline);
+        vm.stopPrank();
 
         uint256 balanceAfter = IERC20(tokenOut).balanceOf(USER);
         console.log("balance after: ", balanceAfter);
