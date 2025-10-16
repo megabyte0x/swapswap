@@ -193,7 +193,7 @@ contract SwapSwapTest is Test {
         uint256 base = Math.mulDiv(tokenInAmt, tokenInPrice, tokenOutPrice);
 
         if (outDecimals >= inDecimals) {
-            tokenAmt = tokenAmt = base * (10 ** (outDecimals - inDecimals));
+            tokenAmt = base * (10 ** (outDecimals - inDecimals));
         } else {
             tokenAmt = base / (10 ** (inDecimals - outDecimals));
         }
