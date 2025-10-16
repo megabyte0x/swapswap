@@ -66,5 +66,13 @@ testExecuteSwapFromTokentoUSDC:
 testExecuteSwapFromETHtoToken:
 	forge test --mt testExecuteSwapFromETHtoToken $(FORK_NETWORK_ARGS) -vvv
 
+testExecuteCallDataSwapFromUSDCtoToken:
+	forge test --mt testExecuteCallDataSwapFromUSDCtoToken $(FORK_NETWORK_ARGS) -vvvv
+
+testExecuteCallDataSwapFromTokenToUSDC:
+	forge test --mt testExecuteCallDataSwapFromTokenToUSDC $(FORK_NETWORK_ARGS) -vvvv
+testExecuteCallDataSwapFromETHToToken:
+	forge test --mt testExecuteCallDataSwapFromETHToToken $(FORK_NETWORK_ARGS) -vvvv
+
 testSameDeployment:
 	forge test --mt testSameDeployment $(FORK_NETWORK_ARGS) -vvvv

@@ -18,12 +18,14 @@ contract HelperConfig is Script {
     address constant AERO_CL_FACTORY = 0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A;
     address constant AERO_CL_IMPLEMENTATION = 0xeC8E5342B19977B4eF8892e02D8DAEcfa1315831;
 
+    address public constant BASE_ZROUTER = 0x0000000000404FECAf36E6184245475eE1254835;
+    address public constant BASE_zQUOTER = 0x772E2810A471dB2CC7ADA0d37D6395476535889a;
+
     address public constant ETH = address(0);
     address public constant ADMIN = 0xD1AD5A61768d745aCE465e0cfD4acd039cA95025; // swapswap_admin
-    address public constant BASE_ZROUTER = 0x0000000000404FECAf36E6184245475eE1254835;
     address public constant BASE_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address public constant BASE_WETH = 0x4200000000000000000000000000000000000006;
-    address public constant BASE_DAI = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public constant BASE_DAI = 0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb;
     address public constant BASE_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address public constant BASE_NOICE = 0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69;
 

@@ -88,6 +88,23 @@ contract SwapSwap is AccessControl, ISwapSwap {
         emit SwapSwap__SwapExecuted(tokenIn, amountIn, amountOut);
     }
 
+    function executeCallDataSwap(bytes calldata data, uint256 msgValue) external onlyRole(EXECUTOR) {
+        bool success;
+        bytes memory returnedData;
+
+        if (msgValue == 0) {
+            (success, returnedData) = address(s_zRouter).call(data);
+        } else {
+            (success, returnedData) = address(s_zRouter).call{value: msgValue}(data);
+        }
+
+        if (!success) {
+            revert SwapSwap__SwapFailed();
+        }
+
+        emit SwapSwap__CallDataSwapExecuted(data, returnedData);
+    }
+
     function executeCLSwap(bytes calldata data) external onlyRole(EXECUTOR) {
         (
             address to,
