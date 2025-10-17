@@ -13,16 +13,20 @@ contract SwapSwapFactory is Ownable {
 
     event SwapSwapFactory__AdminUpdated(address indexed newAdmin);
     event SwapSwapFactory__Created(address indexed instance, address indexed token);
+    event SwapSwapFactory__SaltUpdate(string indexed newSalt);
 
     address public admin;
     address public immutable i_zRouter;
     address public immutable i_USDC;
     address public immutable i_WETH;
     address public immutable i_DAI;
+    string s_salt;
 
     mapping(address _token => address _instance) public instances;
 
-    constructor(address _admin, address router, address usdc, address weth, address dai) Ownable(msg.sender) {
+    constructor(address _admin, address router, address usdc, address weth, address dai, string memory salt)
+        Ownable(msg.sender)
+    {
         if (_admin == address(0) || router == address(0)) {
             revert SwapSwapFactory__ZeroAddress();
         }
@@ -31,6 +35,7 @@ contract SwapSwapFactory is Ownable {
         i_USDC = usdc;
         i_WETH = weth;
         i_DAI = dai;
+        s_salt = salt;
     }
 
     function updateAdmin(address _newAdmin) external onlyOwner {
@@ -40,6 +45,11 @@ contract SwapSwapFactory is Ownable {
 
         admin = _newAdmin;
         emit SwapSwapFactory__AdminUpdated(_newAdmin);
+    }
+
+    function updateSalt(string memory salt) external onlyOwner {
+        s_salt = salt;
+        emit SwapSwapFactory__SaltUpdate(s_salt);
     }
 
     function deploySwapSwap(address _token) external returns (address instance) {
@@ -69,11 +79,11 @@ contract SwapSwapFactory is Ownable {
 
     function _initCode(address token) internal view returns (bytes memory) {
         // creation bytecode + encoded constructor args
-        return abi.encode(type(SwapSwap).creationCode, abi.encode(token, i_zRouter, i_USDC, i_WETH, i_DAI, admin));
+        return abi.encodePacked(type(SwapSwap).creationCode, abi.encode(token, i_zRouter, i_USDC, i_WETH, i_DAI, admin));
     }
 
-    function _salt(address token) internal pure returns (bytes32) {
+    function _salt(address token) internal view returns (bytes32) {
         // single 32-byte salt derived from the ordered pair
-        return keccak256(abi.encodePacked(token, "swapswap.eth"));
+        return keccak256(abi.encodePacked(token, s_salt));
     }
 }
