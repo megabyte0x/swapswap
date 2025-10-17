@@ -49,6 +49,10 @@ contract SwapSwap is AccessControl, ISwapSwap {
         emit SwapSwap__zRouterUpdated(_zRouter);
     }
 
+    function getRouter() external view returns (address) {
+        return address(s_zRouter);
+    }
+
     function setApproval(address token, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) isZeroAddress(token) {
         if (!IERC20(token).approve(address(s_zRouter), amount)) {
             revert SwapSwap__SetApprovalFailed(token, amount);

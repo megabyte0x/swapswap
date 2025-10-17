@@ -76,3 +76,9 @@ testExecuteCallDataSwapFromETHToToken:
 
 testSameDeployment:
 	forge test --mt testSameDeployment $(FORK_NETWORK_ARGS) -vvvv
+
+test_create_contract_code:
+	forge test --mt test_create_contract_code $(FORK_NETWORK_ARGS) -vvvv
+
+test_token_address_in_the_deployed_contract:
+	forge test --mt test_token_address_in_the_deployed_contract $(FORK_NETWORK_ARGS) -vvvv

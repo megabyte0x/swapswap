@@ -6,6 +6,7 @@ import {console} from "forge-std/Script.sol";
 
 import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {SwapSwapFactory} from "../src/SwapSwapFactory.sol";
+import {ISwapSwap} from "../src/interfaces/ISwapSwap.sol";
 
 contract SwapSwapFactoryTest is Test {
     SwapSwapFactory factory;
@@ -22,7 +23,8 @@ contract SwapSwapFactoryTest is Test {
 
         (zRouter, usdc, weth, dai) = helperConfig.networkConfig();
         admin = helperConfig.ADMIN();
-        factory = new SwapSwapFactory(admin, zRouter, usdc, weth, dai);
+        string memory salt = helperConfig.salt();
+        factory = new SwapSwapFactory(admin, zRouter, usdc, weth, dai, salt);
     }
 
     function testSameDeployment() public {
@@ -38,5 +40,27 @@ contract SwapSwapFactoryTest is Test {
         address instance2 = factory.deploySwapSwap(token);
 
         console.log("BTC Instance2: ", instance2);
+    }
+
+    function test_create_contract_code() public {
+        address token = helperConfig.BASE_CBBTC();
+
+        vm.startPrank(admin);
+        address instance = factory.deploySwapSwap(token);
+        console.log("BTC Instance: ", instance);
+        vm.stopPrank();
+
+        assert(instance.code.length > 0);
+    }
+
+    function test_token_address_in_the_deployed_contract() public {
+        address token = helperConfig.BASE_CBBTC();
+
+        vm.startPrank(admin);
+        address instance = factory.deploySwapSwap(token);
+        console.log("BTC Instance: ", instance);
+        vm.stopPrank();
+
+        assertEq(ISwapSwap(instance).i_token(), token);
     }
 }

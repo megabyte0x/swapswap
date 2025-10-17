@@ -27,4 +27,16 @@ interface ISwapSwap {
     function recoverToken(address token) external;
 
     function recoverETH() external;
+
+    function i_USDC() external view returns (address);
+
+    function i_WETH() external view returns (address);
+
+    function i_DAI() external view returns (address);
+
+    function i_admin() external view returns (address);
+
+    function i_token() external view returns (address);
+
+    function getRouter() external view returns (address);
 }
