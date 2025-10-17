@@ -7,9 +7,16 @@ import {SwapSwapFactory} from "../src/SwapSwapFactory.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract DeploySwapSwapFactory is Script {
-    function deployFactoryWithConfig(address admin, address zRouter, address usdc, address weth, address dai) public {
+    function deployFactoryWithConfig(
+        address admin,
+        address zRouter,
+        address usdc,
+        address weth,
+        address dai,
+        string memory salt
+    ) public {
         vm.startBroadcast();
-        SwapSwapFactory factory = new SwapSwapFactory(admin, zRouter, usdc, weth, dai);
+        SwapSwapFactory factory = new SwapSwapFactory(admin, zRouter, usdc, weth, dai, salt);
         vm.stopBroadcast();
 
         console.log("Factory contract deployed at: ", address(factory));
@@ -18,8 +25,8 @@ contract DeploySwapSwapFactory is Script {
     function deployFactory() public {
         HelperConfig helperConfig = new HelperConfig();
         (address zRouter, address usdc, address weth, address dai) = helperConfig.networkConfig();
-
-        deployFactoryWithConfig(helperConfig.ADMIN(), zRouter, usdc, weth, dai);
+        string memory salt = helperConfig.salt();
+        deployFactoryWithConfig(helperConfig.ADMIN(), zRouter, usdc, weth, dai, salt);
     }
 
     function run() external {

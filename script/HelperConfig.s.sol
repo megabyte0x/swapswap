@@ -29,6 +29,8 @@ contract HelperConfig is Script {
     address public constant BASE_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address public constant BASE_NOICE = 0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69;
 
+    string public salt = "token.swapswap.eth";
+
     constructor() {
         if (block.chainid == 8453) {
             setBaseConfig();
