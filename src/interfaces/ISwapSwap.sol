@@ -12,8 +12,15 @@ interface ISwapSwap {
     event SwapSwap__zRouterUpdated(address indexed _zRouter);
     event SwapSwap__TokenRecovered(address indexed token);
     event SwapSwap__ETHRecovered();
-    event SwapSwap__SwapExecuted(address indexed tokenIn, uint256 indexed amountIn, uint256 indexed amountOut);
-    event SwapSwap__CallDataSwapExecuted(bytes indexed data, bytes indexed returnedData);
+    event SwapSwap__SwapExecuted(
+        address indexed tokenIn,
+        uint256 indexed amountIn,
+        uint256 indexed amountOut
+    );
+    event SwapSwap__CallDataSwapExecuted(
+        bytes indexed data,
+        bytes indexed returnedData
+    );
 
     /// @notice Initialization arguments used when cloning SwapSwap instances.
     struct InitParams {
@@ -40,18 +47,13 @@ interface ISwapSwap {
     /// @param _zRouter Address of the new router implementation.
     function setRouter(address _zRouter) external;
 
-    /// @notice Executes an Aerodrome swap for the managed token pair.
-    /// @param data ABI-encoded swap parameters.
-    function executeSwap(bytes calldata data) external;
-
-    /// @notice Executes an Aerodrome concentrated-liquidity swap.
-    /// @param data ABI-encoded swap parameters for CL pools.
-    function executeCLSwap(bytes calldata data) external;
-
     /// @notice Forwards arbitrary calldata to the router, optionally sending ETH.
     /// @param data Encoded router call.
     /// @param msgValue ETH value to forward.
-    function executeCallDataSwap(bytes calldata data, uint256 msgValue) external;
+    function executeCallDataSwap(
+        bytes calldata data,
+        uint256 msgValue
+    ) external;
 
     /// @notice Recovers ERC20 tokens held by the contract.
     /// @param token ERC20 token address to sweep.
@@ -74,5 +76,12 @@ interface ISwapSwap {
     function initParams()
         external
         view
-        returns (address usdc, address dai, address weth, address admin, address token, address zRouter);
+        returns (
+            address usdc,
+            address dai,
+            address weth,
+            address admin,
+            address token,
+            address zRouter
+        );
 }

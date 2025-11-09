@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 
 import {SwapSwap} from "../src/SwapSwap.sol";
 
-contract DeploySwapSwap is Script {
+contract DeployImplementation is Script {
     function run() external returns (address) {
         return address(new SwapSwap());
     }
