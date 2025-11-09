@@ -10,11 +10,13 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {IERC20, SafeERC20, SwapSwap} from "../src/SwapSwap.sol";
 import {IzQuoter} from "../src/interfaces/IzQuoter.sol";
+import {SwapSwapFactory} from "../src/SwapSwapFactory.sol";
 
 contract SwapSwapTest is Test {
     using SafeERC20 for IERC20;
 
     SwapSwap public swapSwap;
+    SwapSwapFactory public factory;
     HelperConfig public helperConfig;
     IPyth public pyth = IPyth(0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a);
 
@@ -47,17 +49,23 @@ contract SwapSwapTest is Test {
         token = helperConfig.BASE_CBBTC();
         zQuoterBase = helperConfig.BASE_zQUOTER();
         token_decimals = IERC20Metadata(token).decimals();
+        string memory salt = helperConfig.SALT();
 
         vm.startPrank(admin);
-        swapSwap = new SwapSwap({
-            _token: token,
-            _router: zRouter,
-            _usdc: usdc,
-            _weth: weth,
-            _dai: dai,
-            _admin: helperConfig.ADMIN()
-        });
-        swapSwap.setRouter(zRouter);
+        address implementation = address(new SwapSwap());
+        factory = new SwapSwapFactory(
+            implementation,
+            admin,
+            zRouter,
+            usdc,
+            weth,
+            dai,
+            salt
+        );
+        address swap = factory.deploySwapSwap(token);
+
+        swapSwap = SwapSwap(payable(swap));
+
         setApprovals();
         vm.stopPrank();
 
@@ -96,18 +104,38 @@ contract SwapSwapTest is Test {
         _;
     }
 
-    function callSwap(address tokenIn, address tokenOut, uint256 swapAmount, uint256 amountLimit, uint256 deadline)
-        internal
-    {
+    function callSwap(
+        address tokenIn,
+        address tokenOut,
+        uint256 swapAmount,
+        uint256 amountLimit,
+        uint256 deadline
+    ) internal {
         int24 tickSpacing = 100;
         bool stable = false;
 
         if (helperConfig.checkIfCLPoolExists(tokenIn, tokenOut, tickSpacing)) {
-            bytes memory data =
-                abi.encode(USER, EXACT_OUT, tickSpacing, tokenIn, tokenOut, swapAmount, amountLimit, deadline);
+            bytes memory data = abi.encode(
+                USER,
+                EXACT_OUT,
+                tickSpacing,
+                tokenIn,
+                tokenOut,
+                swapAmount,
+                amountLimit,
+                deadline
+            );
             swapSwap.executeCLSwap(data);
         } else {
-            bytes memory data = abi.encode(USER, stable, tokenIn, tokenOut, swapAmount, amountLimit, deadline);
+            bytes memory data = abi.encode(
+                USER,
+                stable,
+                tokenIn,
+                tokenOut,
+                swapAmount,
+                amountLimit,
+                deadline
+            );
             swapSwap.executeSwap(data);
         }
     }
@@ -116,7 +144,12 @@ contract SwapSwapTest is Test {
         swapSwap.executeCallDataSwap(data, msgValue);
     }
 
-    function _generateCallDataForSwap(address tokenIn, address tokenOut, uint256 swapAmount, uint256 deadline)
+    function _generateCallDataForSwap(
+        address tokenIn,
+        address tokenOut,
+        uint256 swapAmount,
+        uint256 deadline
+    )
         internal
         view
         returns (bytes memory data, uint256 amountLimit, uint256 msgValue)
@@ -140,7 +173,10 @@ contract SwapSwapTest is Test {
         }
 
         if (success) {
-            (, data, amountLimit, msgValue) = abi.decode(returnedData, (IzQuoter.Quote, bytes, uint256, uint256));
+            (, data, amountLimit, msgValue) = abi.decode(
+                returnedData,
+                (IzQuoter.Quote, bytes, uint256, uint256)
+            );
             return (data, amountLimit, msgValue);
         } else {
             {
@@ -160,8 +196,10 @@ contract SwapSwapTest is Test {
             }
 
             if (success) {
-                (,,, data, msgValue) =
-                    abi.decode(returnedData, (IzQuoter.Quote, IzQuoter.Quote, bytes[], bytes, uint256));
+                (, , , data, msgValue) = abi.decode(
+                    returnedData,
+                    (IzQuoter.Quote, IzQuoter.Quote, bytes[], bytes, uint256)
+                );
                 amountLimit = 0;
                 return (data, amountLimit, msgValue);
             }
@@ -172,21 +210,28 @@ contract SwapSwapTest is Test {
     function _getPrice(address asset) internal view returns (uint256) {
         bytes32 priceFeed = helperConfig.getPriceFeed(asset);
         require(priceFeed != 0, "PRICE_FEED_NOT_FOUND");
-        PythStructs.Price memory price = pyth.getPriceNoOlderThan(priceFeed, block.timestamp + 60);
+        PythStructs.Price memory price = pyth.getPriceNoOlderThan(
+            priceFeed,
+            block.timestamp + 60
+        );
 
-        uint256 tokenPrice18Decimals =
-            (uint256(uint64(price.price)) * (10 ** 18)) / (10 ** uint8(uint32(-1 * price.expo)));
+        uint256 tokenPrice18Decimals = (uint256(uint64(price.price)) *
+            (10 ** 18)) / (10 ** uint8(uint32(-1 * price.expo)));
 
         return tokenPrice18Decimals;
     }
 
-    function _getTokenAmount(address tokenIn, address tokenOut, uint256 tokenInAmt)
-        internal
-        view
-        returns (uint256 tokenAmt)
-    {
-        uint8 inDecimals = tokenIn == ETH ? IERC20Metadata(weth).decimals() : IERC20Metadata(tokenIn).decimals();
-        uint8 outDecimals = tokenOut == ETH ? IERC20Metadata(weth).decimals() : IERC20Metadata(tokenOut).decimals();
+    function _getTokenAmount(
+        address tokenIn,
+        address tokenOut,
+        uint256 tokenInAmt
+    ) internal view returns (uint256 tokenAmt) {
+        uint8 inDecimals = tokenIn == ETH
+            ? IERC20Metadata(weth).decimals()
+            : IERC20Metadata(tokenIn).decimals();
+        uint8 outDecimals = tokenOut == ETH
+            ? IERC20Metadata(weth).decimals()
+            : IERC20Metadata(tokenOut).decimals();
         uint256 tokenInPrice = _getPrice(tokenIn);
         uint256 tokenOutPrice = _getPrice(tokenOut);
 
@@ -199,7 +244,10 @@ contract SwapSwapTest is Test {
         }
     }
 
-    function _calculateAmountLimit(uint256 tokenAmt, uint256 slippage) internal pure returns (uint256) {
+    function _calculateAmountLimit(
+        uint256 tokenAmt,
+        uint256 slippage
+    ) internal pure returns (uint256) {
         return (tokenAmt * (10_000 - slippage)) / 10_000;
     }
 
@@ -207,11 +255,12 @@ contract SwapSwapTest is Test {
         uint256 deadline = block.timestamp + 30 seconds;
 
         address tokenIn = usdc;
-        address tokenOut = swapSwap.i_token();
+        (, , , , address tokenOut, ) = swapSwap.initParams();
 
         uint256 swapAmountIn1e18 = 12545e16; // 125.45e18
         uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
         uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
@@ -247,10 +296,14 @@ contract SwapSwapTest is Test {
 
         uint256 swapAmountIn1e18 = 12545e16; // 125.45e18
         uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
-        (bytes memory data, uint256 amountLimit, uint256 msgValue) =
-            _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
+        (
+            bytes memory data,
+            uint256 amountLimit,
+            uint256 msgValue
+        ) = _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
 
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
@@ -281,7 +334,8 @@ contract SwapSwapTest is Test {
 
         // cbBTC have 8 decimal
         // 0.6 * 1e18 * 1e8 / 1e18 = 6e7 === 0.6 cbBTC
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
         uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
@@ -317,10 +371,14 @@ contract SwapSwapTest is Test {
 
         uint256 swapAmountIn1e18 = 12545e18; // 0.12545e18
         uint8 inDecimals = IERC20Metadata(tokenIn).decimals();
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
-        (bytes memory data, uint256 amountLimit, uint256 msgValue) =
-            _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
+        (
+            bytes memory data,
+            uint256 amountLimit,
+            uint256 msgValue
+        ) = _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
 
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
@@ -348,10 +406,13 @@ contract SwapSwapTest is Test {
         address tokenOut = token;
 
         uint256 swapAmountIn1e18 = 5e16; // 0.05e18
-        uint8 inDecimals = tokenIn == ETH ? 18 : IERC20Metadata(tokenIn).decimals();
+        uint8 inDecimals = tokenIn == ETH
+            ? 18
+            : IERC20Metadata(tokenIn).decimals();
 
         // 0.05 * 1e18 * 1e18 / 1e18 = 5e16 === 0.05 ether
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
         uint256 tokenAmt = _getTokenAmount(tokenIn, tokenOut, tokenInAmt);
         console.log("tokenAmt :", tokenAmt);
@@ -364,7 +425,7 @@ contract SwapSwapTest is Test {
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
-        (bool success,) = address(swapSwap).call{value: tokenInAmt}("");
+        (bool success, ) = address(swapSwap).call{value: tokenInAmt}("");
         require(success, "ETH_TRANSFER_FAILED");
 
         vm.startPrank(EXECUTOR);
@@ -387,17 +448,23 @@ contract SwapSwapTest is Test {
         address tokenIn = ETH;
 
         uint256 swapAmountIn1e18 = 5e16;
-        uint8 inDecimals = tokenIn == ETH ? 18 : IERC20Metadata(tokenIn).decimals();
-        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) / DECIMALS_18;
+        uint8 inDecimals = tokenIn == ETH
+            ? 18
+            : IERC20Metadata(tokenIn).decimals();
+        uint256 tokenInAmt = (swapAmountIn1e18 * 10 ** inDecimals) /
+            DECIMALS_18;
 
-        (bytes memory data, uint256 amountLimit, uint256 msgValue) =
-            _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
+        (
+            bytes memory data,
+            uint256 amountLimit,
+            uint256 msgValue
+        ) = _generateCallDataForSwap(tokenIn, tokenOut, tokenInAmt, deadline);
 
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(USER);
         console.log("balance before: ", balanceBefore);
 
         vm.prank(USER);
-        (bool success,) = address(swapSwap).call{value: msgValue}("");
+        (bool success, ) = address(swapSwap).call{value: msgValue}("");
         require(success, "ETH_TRANSFER_FAILED");
 
         vm.startPrank(EXECUTOR);

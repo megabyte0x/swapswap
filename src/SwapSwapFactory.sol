@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {SwapSwap} from "./SwapSwap.sol";
+import {ISwapSwap} from "./interfaces/ISwapSwap.sol";
 
 contract SwapSwapFactory is Ownable {
     error SwapSwapFactory__NotAdmin();
@@ -14,8 +14,11 @@ contract SwapSwapFactory is Ownable {
     event SwapSwapFactory__AdminUpdated(address indexed newAdmin);
     event SwapSwapFactory__Created(address indexed instance, address indexed token);
     event SwapSwapFactory__SaltUpdate(string indexed newSalt);
+    event SwapSwapFactory__ImplementationUpdated(address indexed newImplementation);
 
-    address public admin;
+    address public s_admin;
+    address public s_implementation;
+
     address public immutable i_zRouter;
     address public immutable i_USDC;
     address public immutable i_WETH;
@@ -24,18 +27,26 @@ contract SwapSwapFactory is Ownable {
 
     mapping(address _token => address _instance) public instances;
 
-    constructor(address _admin, address router, address usdc, address weth, address dai, string memory salt)
-        Ownable(msg.sender)
-    {
-        if (_admin == address(0) || router == address(0)) {
+    constructor(
+        address _implementation,
+        address _admin,
+        address router,
+        address usdc,
+        address weth,
+        address dai,
+        string memory salt
+    ) Ownable(msg.sender) {
+        if (_admin == address(0) || router == address(0) || _implementation == address(0)) {
             revert SwapSwapFactory__ZeroAddress();
         }
-        admin = _admin;
+        s_implementation = _implementation;
+        s_admin = _admin;
+        s_salt = salt;
+
         i_zRouter = router;
         i_USDC = usdc;
         i_WETH = weth;
         i_DAI = dai;
-        s_salt = salt;
     }
 
     function updateAdmin(address _newAdmin) external onlyOwner {
@@ -43,43 +54,46 @@ contract SwapSwapFactory is Ownable {
             revert SwapSwapFactory__ZeroAddress();
         }
 
-        admin = _newAdmin;
+        s_admin = _newAdmin;
         emit SwapSwapFactory__AdminUpdated(_newAdmin);
     }
 
-    function updateSalt(string memory salt) external onlyOwner {
-        s_salt = salt;
-        emit SwapSwapFactory__SaltUpdate(s_salt);
+    function updateSalt(string memory _newSalt) external onlyOwner {
+        s_salt = _newSalt;
+        emit SwapSwapFactory__SaltUpdate(_newSalt);
+    }
+
+    function updateImplementation(address _newImplementation) external onlyOwner {
+        s_implementation = _newImplementation;
+        emit SwapSwapFactory__ImplementationUpdated(_newImplementation);
     }
 
     function deploySwapSwap(address _token) external returns (address instance) {
-        if (msg.sender != admin) revert SwapSwapFactory__NotAdmin();
+        if (msg.sender != s_admin) revert SwapSwapFactory__NotAdmin();
 
         if (_token == address(0)) revert SwapSwapFactory__ZeroAddress();
 
         address predictedAddress = predictAddress(_token);
 
-        if (predictedAddress.code.length != 0) revert SwapSwapFactory__AlreadyDeployed(_token);
+        if (predictedAddress.code.length != 0) {
+            revert SwapSwapFactory__AlreadyDeployed(_token);
+        }
 
         bytes32 salt = _salt(_token);
-        bytes memory bytecode = _initCode(_token);
 
-        instance = Create2.deploy(0, salt, bytecode);
-
+        instance = Clones.cloneDeterministic(s_implementation, salt);
         instances[_token] = instance;
+
+        ISwapSwap.InitParams memory initParams = ISwapSwap.InitParams(i_USDC, i_DAI, i_WETH, s_admin, _token, i_zRouter);
+
+        ISwapSwap(instance).initialize(abi.encode(initParams));
 
         emit SwapSwapFactory__Created(instance, _token);
     }
 
     function predictAddress(address _token) public view returns (address predicted) {
-        bytes32 initCodeHash = keccak256(_initCode(_token));
         bytes32 salt = _salt(_token);
-        predicted = Create2.computeAddress(salt, initCodeHash);
-    }
-
-    function _initCode(address token) internal view returns (bytes memory) {
-        // creation bytecode + encoded constructor args
-        return abi.encodePacked(type(SwapSwap).creationCode, abi.encode(token, i_zRouter, i_USDC, i_WETH, i_DAI, admin));
+        predicted = Clones.predictDeterministicAddress(s_implementation, salt, address(this));
     }
 
     function _salt(address token) internal view returns (bytes32) {

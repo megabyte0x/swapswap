@@ -5,14 +5,22 @@ interface ISwapSwap {
     error SwapSwap__ZeroBalance();
     error SwapSwap__ZeroAddress();
     error SwapSwap__ETHTransferFailed();
-    error SwapSwap__SwapFailed();
-    error SwapSwap__SetApprovalFailed(address token, uint256 amount);
+    error SwapSwap__SwapFailed(bytes returnedData);
 
     event SwapSwap__zRouterUpdated(address indexed _zRouter);
     event SwapSwap__TokenRecovered(address indexed token);
     event SwapSwap__ETHRecovered();
     event SwapSwap__SwapExecuted(address indexed tokenIn, uint256 indexed amountIn, uint256 indexed amountOut);
     event SwapSwap__CallDataSwapExecuted(bytes indexed data, bytes indexed returnedData);
+
+    struct InitParams {
+        address usdc;
+        address dai;
+        address weth;
+        address admin;
+        address token;
+        address zRouter;
+    }
 
     function setApproval(address token, uint256 amount) external;
 
@@ -26,17 +34,9 @@ interface ISwapSwap {
 
     function recoverToken(address token) external;
 
-    function recoverETH() external;
+    function recoverEth() external;
 
-    function i_USDC() external view returns (address);
+    function initialize(bytes calldata data) external;
 
-    function i_WETH() external view returns (address);
-
-    function i_DAI() external view returns (address);
-
-    function i_admin() external view returns (address);
-
-    function i_token() external view returns (address);
-
-    function getRouter() external view returns (address);
+    function initParams() external view returns (address, address, address, address, address, address);
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {Script} from "forge-std/Script.sol";
+import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 
 contract HelperConfig is Script {
     struct Config {
@@ -29,7 +30,7 @@ contract HelperConfig is Script {
     address public constant BASE_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address public constant BASE_NOICE = 0x9Cb41FD9dC6891BAe8187029461bfAADF6CC0C69;
 
-    string public salt = "token.swapswap.eth";
+    string public SALT = "token.swapswap.eth";
 
     constructor() {
         if (block.chainid == 8453) {
@@ -113,5 +114,9 @@ contract HelperConfig is Script {
             mstore(add(ptr, 0x6c), keccak256(ptr, 0x37))
             aeroCLPool := keccak256(add(ptr, 0x37), 0x55)
         }
+    }
+
+    function getImplementation() public view returns (address implementation) {
+        implementation = DevOpsTools.get_most_recent_deployment("SwapSwap", block.chainid);
     }
 }

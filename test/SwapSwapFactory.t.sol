@@ -6,6 +6,7 @@ import {console} from "forge-std/Script.sol";
 
 import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {SwapSwapFactory} from "../src/SwapSwapFactory.sol";
+import {SwapSwap} from "../src/SwapSwap.sol";
 import {ISwapSwap} from "../src/interfaces/ISwapSwap.sol";
 
 contract SwapSwapFactoryTest is Test {
@@ -23,8 +24,9 @@ contract SwapSwapFactoryTest is Test {
 
         (zRouter, usdc, weth, dai) = helperConfig.networkConfig();
         admin = helperConfig.ADMIN();
-        string memory salt = helperConfig.salt();
-        factory = new SwapSwapFactory(admin, zRouter, usdc, weth, dai, salt);
+        string memory salt = helperConfig.SALT();
+        address implementation = address(new SwapSwap());
+        factory = new SwapSwapFactory(implementation, admin, zRouter, usdc, weth, dai, salt);
     }
 
     function testSameDeployment() public {
@@ -61,6 +63,7 @@ contract SwapSwapFactoryTest is Test {
         console.log("BTC Instance: ", instance);
         vm.stopPrank();
 
-        assertEq(ISwapSwap(instance).i_token(), token);
+        (,,,, address setToken,) = ISwapSwap(instance).initParams();
+        assertEq(setToken, token);
     }
 }
